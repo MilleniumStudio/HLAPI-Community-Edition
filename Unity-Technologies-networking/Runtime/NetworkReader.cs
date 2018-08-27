@@ -48,7 +48,7 @@ namespace UnityEngine.Networking
             bool notNull = reader.ReadBoolean();
             if (notNull)
             {
-                ushort size = ReadUInt16();
+                int size = ReadInt32();
                 return reader.ReadBytes(size);
             }
             return null;

@@ -71,13 +71,13 @@ namespace UnityEngine.Networking
                 writer.Write(false); // notNull?
                 return;
             }
-            if (count > UInt16.MaxValue)
+            if (count > int.MaxValue)
             {
-                if (LogFilter.logError) { Debug.LogError("NetworkWriter WriteBytesAndSize: size is too large (" + count + ") bytes. The maximum buffer size is " + UInt16.MaxValue + " bytes."); }
+                if (LogFilter.logError) { Debug.LogError("NetworkWriter WriteBytesAndSize: size is too large (" + count + ") bytes. The maximum buffer size is " + int.MaxValue + " bytes."); }
                 return;
             }
             writer.Write(true); // notNull?
-            writer.Write((UInt16)count);
+            writer.Write((int)count);
             writer.Write(buffer, offset, count);
         }
 

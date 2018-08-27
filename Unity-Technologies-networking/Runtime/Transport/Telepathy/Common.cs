@@ -50,6 +50,20 @@ namespace Telepathy
         {
             return (ushort)((bytes[1] << 8) + bytes[0]);
         }
+        static byte[] UIntToBytes(uint value)
+        {
+            return new byte[]
+            {
+                (byte)value,
+                (byte)(value >> 8),
+                (byte)(value >> 16),
+                (byte)(value >> 24)
+            };
+        }
+        static uint BytesToUInt(byte[] bytes)
+        {
+            return (uint)((bytes[3] << 24) + (bytes[2] << 16) + (bytes[1] << 8) + bytes[0]);
+        }
 
         // send message (via stream) with the <size,content> message structure
         protected static bool SendMessage(NetworkStream stream, byte[] content)
@@ -62,9 +76,9 @@ namespace Telepathy
             }
 
             // check size
-            if (content.Length > ushort.MaxValue)
+            if (content.Length > int.MaxValue - 4) // According to MSDN, the index for array of bytes cannot be greater than 2147483591
             {
-                Logger.LogError("Send: message too big(" + content.Length + ") max=" + ushort.MaxValue);
+                Logger.LogError("Send: message too big(" + content.Length + ") max=" + (int.MaxValue - 4));
                 return false;
             }
 
@@ -73,7 +87,7 @@ namespace Telepathy
             try
             {
                 // construct header (size)
-                byte[] header = UShortToBytes((ushort)content.Length);
+                byte[] header = UIntToBytes((uint)content.Length);
 
                 // write header+content at once via payload array. writing
                 // header,payload separately would cause 2 TCP packets to be
@@ -100,15 +114,15 @@ namespace Telepathy
         {
             content = null;
 
-            // read exactly 2 bytes for header (blocking)
-            byte[] header = new byte[2];
-            if (!stream.ReadExactly(header, 2))
+            // read exactly 4 bytes for header (blocking)
+            byte[] header = new byte[4];
+            if (!stream.ReadExactly(header, 4))
                 return false;
-            ushort size = BytesToUShort(header);
+            uint size = BytesToUInt(header);
 
             // read exactly 'size' bytes for content (blocking)
             content = new byte[size];
-            if (!stream.ReadExactly(content, size))
+            if (!stream.ReadExactly(content, (int)size))
                 return false;
 
             return true;

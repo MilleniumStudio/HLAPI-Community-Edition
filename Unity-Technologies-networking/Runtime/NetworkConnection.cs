@@ -188,9 +188,9 @@ namespace UnityEngine.Networking
         {
             if (logNetworkMessages) { Debug.Log("ConnectionSend con:" + connectionId + " bytes:" + BitConverter.ToString(bytes)); }
 
-            if (bytes.Length > UInt16.MaxValue)
+            if (bytes.Length > int.MaxValue)
             {
-                if (LogFilter.logError) { Debug.LogError("NetworkConnection:SendBytes cannot send packet larger than " + UInt16.MaxValue + " bytes"); }
+                if (LogFilter.logError) { Debug.LogError("NetworkConnection:SendBytes cannot send packet larger than " + int.MaxValue + " bytes"); }
                 return false;
             }
 
