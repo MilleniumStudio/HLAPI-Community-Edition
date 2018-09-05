@@ -265,6 +265,7 @@ namespace UnityEngine.Networking
 
             // spawn uv for this conn
             NetworkServer.ShowForConnection(uv, this);
+            uv.AfterAddObserver(this);
         }
 
         internal void RemoveFromVisList(NetworkIdentity uv, bool isDestroyed)
@@ -302,7 +303,8 @@ namespace UnityEngine.Networking
             }
             else if (Transport.layer.ServerActive())
             {
-                Transport.layer.ServerSend(connectionId, bytes);
+                if (!Transport.layer.ServerSend(connectionId, bytes))
+                    Disconnect();
                 return true;
             }
             return false;
@@ -345,9 +347,10 @@ namespace UnityEngine.Networking
             // pauseQueue is null if Resume called without pausing, make sure to only do something if paused before.
             if (pauseQueue != null)
             {
-                foreach (NetworkMessage msg in pauseQueue)
+                while (pauseQueue.Count > 0)
                 {
-                    if (LogFilter.logWarn) { Debug.LogWarning("processing queued message: " + msg.msgType + " str=" + msg.msgType); }
+                    NetworkMessage msg = pauseQueue.Dequeue();
+                    if (LogFilter.logWarn) { Debug.LogWarning("processing queued message: " + msg.msgType + " str=" + msg.msgType + " size = " + pauseQueue.Count()); }
                     var msgDelegate = m_MessageHandlers[msg.msgType];
                     msgDelegate(msg);
                 }

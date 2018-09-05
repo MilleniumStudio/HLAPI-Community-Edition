@@ -1034,7 +1034,7 @@ namespace UnityEngine.Networking
 
                 // serialize all components with initialState = true
                 NetworkWriter writer = new NetworkWriter();
-                uv.OnSerializeAllSafely(writer, true);
+                uv.OnSerializeAllSafely(writer, StateBehaviour.Initial);
                 msg.payload = writer.ToArray();
 
                 // conn is != null when spawning it for a client
@@ -1058,7 +1058,7 @@ namespace UnityEngine.Networking
 
                 // include synch data
                 NetworkWriter writer = new NetworkWriter();
-                uv.OnSerializeAllSafely(writer, true);
+                uv.OnSerializeAllSafely(writer, StateBehaviour.Initial);
                 msg.payload = writer.ToArray();
 
                 // conn is != null when spawning it for a client
@@ -1071,6 +1071,18 @@ namespace UnityEngine.Networking
                 {
                     SendToReady(uv.gameObject, (short)MsgType.SpawnSceneObject, msg);
                 }
+            }
+            {
+               /* NetworkWriter writer = new NetworkWriter();
+                if (uv.OnSerializeAllSafely(writer, StateBehaviour.PostInitial))
+                {
+                    // construct message and send
+                    UpdateVarsMessage message = new UpdateVarsMessage();
+                    message.netId = uv.netId;
+                    message.payload = writer.ToArray();
+
+                    SendToReady(uv.gameObject, (short)MsgType.UpdateVars, message);
+                }*/
             }
         }
 

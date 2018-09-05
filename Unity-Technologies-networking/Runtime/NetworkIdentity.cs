@@ -9,6 +9,8 @@ using UnityEngine.Networking.NetworkSystem;
 using UnityEditor;
 #endif
 
+public enum StateBehaviour : sbyte { Initial = 0, PostInitial, RunTime };
+
 namespace UnityEngine.Networking
 {
     [ExecuteInEditMode]
@@ -407,6 +409,26 @@ namespace UnityEngine.Networking
             return true;
         }
 
+        /// Naïca Needed
+        internal bool AfterAddObserver(NetworkConnection conn)
+        {
+            for (int i = 0; i < m_NetworkBehaviours.Length; i++)
+            {
+                NetworkBehaviour comp = m_NetworkBehaviours[i];
+                try
+                {
+                    if (!comp.AfterAddObserver(conn))
+                        return false;
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError("Exception in OnAddObserver:" + e.Message + " " + e.StackTrace);
+                }
+            }
+            return true;
+        }
+
+
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         // vis2k: readstring bug prevention: https://issuetracker.unity3d.com/issues/unet-networkwriter-dot-write-causing-readstring-slash-readbytes-out-of-range-errors-in-clients
@@ -445,7 +467,7 @@ namespace UnityEngine.Networking
 
         // serialize all components (or only dirty ones if not initial state)
         // -> returns TRUE if any date other than dirtyMask was written!
-        internal bool OnSerializeAllSafely(NetworkBehaviour[] components, NetworkWriter writer, bool initialState)
+        internal bool OnSerializeAllSafely(NetworkBehaviour[] components, NetworkWriter writer, StateBehaviour state)
         {
             if (components.Length > 64)
             {
@@ -462,18 +484,18 @@ namespace UnityEngine.Networking
                 // -> always serialize if initialState so all components are included in spawn packet
                 // -> note: IsDirty() is false if the component isn't dirty or sendInterval isn't elapsed yet
                 NetworkBehaviour comp = m_NetworkBehaviours[i];
-                if (initialState || comp.IsDirty())
+                if (state == StateBehaviour.Initial || comp.IsDirty())
                 {
                     // set bit #i to 1 in dirty mask
                     dirtyComponentsMask |= (ulong)(1L << i);
 
                     // serialize the data
-                    if (LogFilter.logDebug) { Debug.Log("OnSerializeAllSafely: " + name + " -> " + comp.GetType() + " initial=" + initialState); }
-                    OnSerializeSafely(comp, payload, initialState);
+                    if (LogFilter.logDebug) { Debug.Log("OnSerializeAllSafely: " + name + " -> " + comp.GetType() + " state=" + state); }
+                    OnSerializeSafely(comp, payload, !(state == StateBehaviour.RunTime));
 
                     // Clear dirty bits only if we are synchronizing data and not sending a spawn message.
                     // This preserves the behavior in HLAPI
-                    if (!initialState)
+                    if (state == StateBehaviour.RunTime)
                     {
                         comp.ClearAllDirtyBits();
                     }
@@ -494,7 +516,10 @@ namespace UnityEngine.Networking
         }
 
         // extra version that uses m_NetworkBehaviours so we can call it from the outside
-        internal void OnSerializeAllSafely(NetworkWriter writer, bool initialState) { OnSerializeAllSafely(m_NetworkBehaviours, writer, initialState); }
+        internal bool OnSerializeAllSafely(NetworkWriter writer, StateBehaviour state)
+        {
+            return OnSerializeAllSafely(m_NetworkBehaviours, writer, state);
+        }
 
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -723,7 +748,7 @@ namespace UnityEngine.Networking
         {
             // serialize all the dirty components and send (if any were dirty)
             NetworkWriter writer = new NetworkWriter();
-            if (OnSerializeAllSafely(m_NetworkBehaviours, writer, false))
+            if (OnSerializeAllSafely(m_NetworkBehaviours, writer, StateBehaviour.RunTime))
             {
                 // construct message and send
                 UpdateVarsMessage message = new UpdateVarsMessage();
@@ -828,6 +853,7 @@ namespace UnityEngine.Networking
             m_Observers.Add(conn);
             m_ObserverConnections.Add(conn.connectionId);
             conn.AddToVisList(this);
+            //AfterAddObserver(conn);
         }
 
         internal void RemoveObserver(NetworkConnection conn)

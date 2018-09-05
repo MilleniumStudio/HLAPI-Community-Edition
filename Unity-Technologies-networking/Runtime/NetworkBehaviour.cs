@@ -587,6 +587,11 @@ namespace UnityEngine.Networking
             return true;
         }
 
+        public virtual bool AfterAddObserver(NetworkConnection conn)
+        {
+            return true;
+        }
+
         public virtual float GetNetworkSendInterval()
         {
             return k_DefaultSendInterval;
